@@ -115,3 +115,23 @@ GitHub: [@ilyassdvf](https://github.com/ilyassdvf)
 ---
 
 *SatelliteVision — Applying deep learning to understand our changing Earth.*
+## Screenshots
+
+### Website Homepage
+![SatelliteVision Homepage](screenshots/Figure_Website_Homepage.png)
+
+### Introduction and Classification
+![Introduction](screenshots/Figure_Website_Introduction.png)
+![Classification Classes](screenshots/Figure_Website_Classes.png)
+
+### Workflow and Technology
+![Workflow](screenshots/Figure_Website_Workflow.png)
+![Technology](screenshots/Figure_Website_Technology.png)
+
+### Results
+![Website Results](screenshots/Figure_Website_Results.png)
+![Prediction Results](screenshots/Figure_Prediction_Results.png)
+
+### Image Upload and Classification
+![Image Upload](screenshots/Figure_Image_Upload.png)
+![Classification Map](screenshots/Figure_Classification_Map.png)
