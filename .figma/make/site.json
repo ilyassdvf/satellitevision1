@@ -1,0 +1,10 @@
+{
+  "description": "Classify satellite images as Forest, Residential, or SeaLake with AI-powered predictions, confidence scores, and model performance insights for researchers and students.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

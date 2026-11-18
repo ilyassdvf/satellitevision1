@@ -1,0 +1,513 @@
+{
+  "best_validation_macro_iou": 0.4402,
+  "validation": {
+    "pixels": 2218496,
+    "pixel_accuracy": 0.6273,
+    "macro_iou": 0.4533,
+    "per_class": [
+      {
+        "class": "Tree cover",
+        "support": 413282,
+        "iou": 0.2087
+      },
+      {
+        "class": "Grassland",
+        "support": 182192,
+        "iou": 0.186
+      },
+      {
+        "class": "Cropland",
+        "support": 491587,
+        "iou": 0.4725
+      },
+      {
+        "class": "Built-up",
+        "support": 730357,
+        "iou": 0.6365
+      },
+      {
+        "class": "Permanent water",
+        "support": 401078,
+        "iou": 0.7627
+      }
+    ]
+  },
+  "test": {
+    "pixels": 2100508,
+    "pixel_accuracy": 0.5658,
+    "macro_iou": 0.4246,
+    "per_class": [
+      {
+        "class": "Tree cover",
+        "support": 657286,
+        "iou": 0.3977
+      },
+      {
+        "class": "Grassland",
+        "support": 314347,
+        "iou": 0.2321
+      },
+      {
+        "class": "Cropland",
+        "support": 471623,
+        "iou": 0.368
+      },
+      {
+        "class": "Built-up",
+        "support": 353486,
+        "iou": 0.4591
+      },
+      {
+        "class": "Permanent water",
+        "support": 303766,
+        "iou": 0.6663
+      }
+    ]
+  },
+  "history": [
+    {
+      "epoch": 1,
+      "batches": 180,
+      "mean_loss": 1.2051,
+      "validation": {
+        "pixels": 327680,
+        "pixel_accuracy": 0.5772,
+        "macro_iou": 0.4063,
+        "per_class": [
+          {
+            "class": "Tree cover",
+            "support": 61707,
+            "iou": 0.1828
+          },
+          {
+            "class": "Grassland",
+            "support": 28896,
+            "iou": 0.1724
+          },
+          {
+            "class": "Cropland",
+            "support": 80465,
+            "iou": 0.4444
+          },
+          {
+            "class": "Built-up",
+            "support": 98162,
+            "iou": 0.5756
+          },
+          {
+            "class": "Permanent water",
+            "support": 58450,
+            "iou": 0.6565
+          }
+        ]
+      }
+    },
+    {
+      "epoch": 2,
+      "batches": 180,
+      "mean_loss": 1.0325,
+      "validation": {
+        "pixels": 327680,
+        "pixel_accuracy": 0.5709,
+        "macro_iou": 0.3886,
+        "per_class": [
+          {
+            "class": "Tree cover",
+            "support": 61707,
+            "iou": 0.1769
+          },
+          {
+            "class": "Grassland",
+            "support": 28896,
+            "iou": 0.1463
+          },
+          {
+            "class": "Cropland",
+            "support": 80465,
+            "iou": 0.4788
+          },
+          {
+            "class": "Built-up",
+            "support": 98162,
+            "iou": 0.5526
+          },
+          {
+            "class": "Permanent water",
+            "support": 58450,
+            "iou": 0.5882
+          }
+        ]
+      }
+    },
+    {
+      "epoch": 3,
+      "batches": 180,
+      "mean_loss": 0.9926,
+      "validation": {
+        "pixels": 327680,
+        "pixel_accuracy": 0.5517,
+        "macro_iou": 0.3645,
+        "per_class": [
+          {
+            "class": "Tree cover",
+            "support": 61707,
+            "iou": 0.1104
+          },
+          {
+            "class": "Grassland",
+            "support": 28896,
+            "iou": 0.1316
+          },
+          {
+            "class": "Cropland",
+            "support": 80465,
+            "iou": 0.4975
+          },
+          {
+            "class": "Built-up",
+            "support": 98162,
+            "iou": 0.5161
+          },
+          {
+            "class": "Permanent water",
+            "support": 58450,
+            "iou": 0.5667
+          }
+        ]
+      }
+    },
+    {
+      "epoch": 4,
+      "batches": 180,
+      "mean_loss": 0.9885,
+      "validation": {
+        "pixels": 327680,
+        "pixel_accuracy": 0.6213,
+        "macro_iou": 0.4377,
+        "per_class": [
+          {
+            "class": "Tree cover",
+            "support": 61707,
+            "iou": 0.1782
+          },
+          {
+            "class": "Grassland",
+            "support": 28896,
+            "iou": 0.1755
+          },
+          {
+            "class": "Cropland",
+            "support": 80465,
+            "iou": 0.4822
+          },
+          {
+            "class": "Built-up",
+            "support": 98162,
+            "iou": 0.6398
+          },
+          {
+            "class": "Permanent water",
+            "support": 58450,
+            "iou": 0.7127
+          }
+        ]
+      }
+    },
+    {
+      "epoch": 5,
+      "batches": 180,
+      "mean_loss": 0.9656,
+      "validation": {
+        "pixels": 327680,
+        "pixel_accuracy": 0.5886,
+        "macro_iou": 0.4063,
+        "per_class": [
+          {
+            "class": "Tree cover",
+            "support": 61707,
+            "iou": 0.1651
+          },
+          {
+            "class": "Grassland",
+            "support": 28896,
+            "iou": 0.1915
+          },
+          {
+            "class": "Cropland",
+            "support": 80465,
+            "iou": 0.3629
+          },
+          {
+            "class": "Built-up",
+            "support": 98162,
+            "iou": 0.6165
+          },
+          {
+            "class": "Permanent water",
+            "support": 58450,
+            "iou": 0.6953
+          }
+        ]
+      }
+    },
+    {
+      "epoch": 6,
+      "batches": 180,
+      "mean_loss": 0.9437,
+      "validation": {
+        "pixels": 327680,
+        "pixel_accuracy": 0.5927,
+        "macro_iou": 0.4123,
+        "per_class": [
+          {
+            "class": "Tree cover",
+            "support": 61707,
+            "iou": 0.144
+          },
+          {
+            "class": "Grassland",
+            "support": 28896,
+            "iou": 0.1826
+          },
+          {
+            "class": "Cropland",
+            "support": 80465,
+            "iou": 0.4654
+          },
+          {
+            "class": "Built-up",
+            "support": 98162,
+            "iou": 0.6102
+          },
+          {
+            "class": "Permanent water",
+            "support": 58450,
+            "iou": 0.6593
+          }
+        ]
+      }
+    },
+    {
+      "epoch": 7,
+      "batches": 180,
+      "mean_loss": 0.9452,
+      "validation": {
+        "pixels": 327680,
+        "pixel_accuracy": 0.5386,
+        "macro_iou": 0.3655,
+        "per_class": [
+          {
+            "class": "Tree cover",
+            "support": 61707,
+            "iou": 0.1571
+          },
+          {
+            "class": "Grassland",
+            "support": 28896,
+            "iou": 0.1571
+          },
+          {
+            "class": "Cropland",
+            "support": 80465,
+            "iou": 0.4268
+          },
+          {
+            "class": "Built-up",
+            "support": 98162,
+            "iou": 0.525
+          },
+          {
+            "class": "Permanent water",
+            "support": 58450,
+            "iou": 0.5617
+          }
+        ]
+      }
+    },
+    {
+      "epoch": 8,
+      "batches": 180,
+      "mean_loss": 0.929,
+      "validation": {
+        "pixels": 327680,
+        "pixel_accuracy": 0.6039,
+        "macro_iou": 0.4402,
+        "per_class": [
+          {
+            "class": "Tree cover",
+            "support": 61707,
+            "iou": 0.1831
+          },
+          {
+            "class": "Grassland",
+            "support": 28896,
+            "iou": 0.1936
+          },
+          {
+            "class": "Cropland",
+            "support": 80465,
+            "iou": 0.4632
+          },
+          {
+            "class": "Built-up",
+            "support": 98162,
+            "iou": 0.5937
+          },
+          {
+            "class": "Permanent water",
+            "support": 58450,
+            "iou": 0.7673
+          }
+        ]
+      }
+    },
+    {
+      "epoch": 9,
+      "batches": 180,
+      "mean_loss": 0.9471,
+      "validation": {
+        "pixels": 327680,
+        "pixel_accuracy": 0.5751,
+        "macro_iou": 0.4029,
+        "per_class": [
+          {
+            "class": "Tree cover",
+            "support": 61707,
+            "iou": 0.1438
+          },
+          {
+            "class": "Grassland",
+            "support": 28896,
+            "iou": 0.164
+          },
+          {
+            "class": "Cropland",
+            "support": 80465,
+            "iou": 0.474
+          },
+          {
+            "class": "Built-up",
+            "support": 98162,
+            "iou": 0.5762
+          },
+          {
+            "class": "Permanent water",
+            "support": 58450,
+            "iou": 0.6566
+          }
+        ]
+      }
+    },
+    {
+      "epoch": 10,
+      "batches": 180,
+      "mean_loss": 0.9215,
+      "validation": {
+        "pixels": 327680,
+        "pixel_accuracy": 0.5816,
+        "macro_iou": 0.4057,
+        "per_class": [
+          {
+            "class": "Tree cover",
+            "support": 61707,
+            "iou": 0.1172
+          },
+          {
+            "class": "Grassland",
+            "support": 28896,
+            "iou": 0.1843
+          },
+          {
+            "class": "Cropland",
+            "support": 80465,
+            "iou": 0.4477
+          },
+          {
+            "class": "Built-up",
+            "support": 98162,
+            "iou": 0.5893
+          },
+          {
+            "class": "Permanent water",
+            "support": 58450,
+            "iou": 0.6898
+          }
+        ]
+      }
+    },
+    {
+      "epoch": 11,
+      "batches": 180,
+      "mean_loss": 0.941,
+      "validation": {
+        "pixels": 327680,
+        "pixel_accuracy": 0.5999,
+        "macro_iou": 0.4295,
+        "per_class": [
+          {
+            "class": "Tree cover",
+            "support": 61707,
+            "iou": 0.171
+          },
+          {
+            "class": "Grassland",
+            "support": 28896,
+            "iou": 0.185
+          },
+          {
+            "class": "Cropland",
+            "support": 80465,
+            "iou": 0.4801
+          },
+          {
+            "class": "Built-up",
+            "support": 98162,
+            "iou": 0.5983
+          },
+          {
+            "class": "Permanent water",
+            "support": 58450,
+            "iou": 0.7129
+          }
+        ]
+      }
+    },
+    {
+      "epoch": 12,
+      "batches": 180,
+      "mean_loss": 0.9173,
+      "validation": {
+        "pixels": 327680,
+        "pixel_accuracy": 0.6155,
+        "macro_iou": 0.4253,
+        "per_class": [
+          {
+            "class": "Tree cover",
+            "support": 61707,
+            "iou": 0.1371
+          },
+          {
+            "class": "Grassland",
+            "support": 28896,
+            "iou": 0.2058
+          },
+          {
+            "class": "Cropland",
+            "support": 80465,
+            "iou": 0.4691
+          },
+          {
+            "class": "Built-up",
+            "support": 98162,
+            "iou": 0.6137
+          },
+          {
+            "class": "Permanent water",
+            "support": 58450,
+            "iou": 0.7008
+          }
+        ]
+      }
+    }
+  ]
+}

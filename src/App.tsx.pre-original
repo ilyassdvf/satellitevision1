@@ -1,0 +1,1485 @@
+import { ChangeEvent, DragEvent, ReactNode, useEffect, useRef, useState } from "react";
+
+type Page = "home" | "classify" | "model" | "research";
+type IconName =
+  | "arrow"
+  | "brain"
+  | "chart"
+  | "check"
+  | "chevron"
+  | "database"
+  | "download"
+  | "file"
+  | "globe"
+  | "grid"
+  | "home"
+  | "image"
+  | "layers"
+  | "menu"
+  | "model"
+  | "pulse"
+  | "satellite"
+  | "spark"
+  | "upload"
+  | "x";
+
+const IMAGES = {
+  hero: "https://images.unsplash.com/photo-1496288117861-edcd4f91bc05?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=88&w=1600",
+  forest:
+    "https://images.unsplash.com/photo-1675371788315-60fa0ef48267?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=700",
+  residential:
+    "https://images.unsplash.com/photo-1508179907815-7be58e0fbebc?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=700",
+  water:
+    "https://images.unsplash.com/photo-1543348750-466b55f32f16?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=700",
+};
+
+function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
+  const paths: Record<IconName, ReactNode> = {
+    arrow: (
+      <>
+        <path d="M5 12h14" />
+        <path d="m13 6 6 6-6 6" />
+      </>
+    ),
+    brain: (
+      <>
+        <path d="M9.5 4.5a3 3 0 0 0-5 2.2 3.5 3.5 0 0 0-.5 6.7 3 3 0 0 0 5.5 2.1V4.5Z" />
+        <path d="M14.5 4.5a3 3 0 0 1 5 2.2 3.5 3.5 0 0 1 .5 6.7 3 3 0 0 1-5.5 2.1V4.5Z" />
+        <path d="M9.5 9H7m7.5 3H17" />
+      </>
+    ),
+    chart: (
+      <>
+        <path d="M4 19V9m6 10V5m6 14v-7m4 7H2" />
+      </>
+    ),
+    check: <path d="m5 12 4 4L19 6" />,
+    chevron: <path d="m9 18 6-6-6-6" />,
+    database: (
+      <>
+        <ellipse cx="12" cy="5" rx="8" ry="3" />
+        <path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6" />
+      </>
+    ),
+    download: (
+      <>
+        <path d="M12 4v11m0 0 4-4m-4 4-4-4" />
+        <path d="M5 19h14" />
+      </>
+    ),
+    file: (
+      <>
+        <path d="M6 3h8l4 4v14H6z" />
+        <path d="M14 3v5h5M9 13h6m-6 4h4" />
+      </>
+    ),
+    globe: (
+      <>
+        <circle cx="12" cy="12" r="9" />
+        <path d="M3 12h18M12 3c2.5 2.5 3.5 5.5 3.5 9S14.5 18.5 12 21c-2.5-2.5-3.5-5.5-3.5-9S9.5 5.5 12 3Z" />
+      </>
+    ),
+    grid: (
+      <>
+        <rect x="4" y="4" width="6" height="6" rx="1" />
+        <rect x="14" y="4" width="6" height="6" rx="1" />
+        <rect x="4" y="14" width="6" height="6" rx="1" />
+        <rect x="14" y="14" width="6" height="6" rx="1" />
+      </>
+    ),
+    home: (
+      <>
+        <path d="m3 11 9-8 9 8" />
+        <path d="M5 10v10h14V10M9 20v-6h6v6" />
+      </>
+    ),
+    image: (
+      <>
+        <rect x="3" y="4" width="18" height="16" rx="2" />
+        <circle cx="8" cy="9" r="2" />
+        <path d="m3 17 5-5 4 4 3-3 6 6" />
+      </>
+    ),
+    layers: (
+      <>
+        <path d="m12 3 9 5-9 5-9-5 9-5Z" />
+        <path d="m3 12 9 5 9-5m-18 4 9 5 9-5" />
+      </>
+    ),
+    menu: <path d="M4 7h16M4 12h16M4 17h16" />,
+    model: (
+      <>
+        <rect x="4" y="4" width="6" height="6" rx="1" />
+        <rect x="14" y="14" width="6" height="6" rx="1" />
+        <path d="M10 7h4a3 3 0 0 1 3 3v4M7 10v7h7" />
+      </>
+    ),
+    pulse: <path d="M3 12h4l2.2-5 4.1 10 2.2-5H21" />,
+    satellite: (
+      <>
+        <path d="m9 9 6 6m-7 1-3 3m11-11 3-3M6 8l-3-3 2-2 3 3m10 10 3 3-2 2-3-3" />
+        <rect x="8" y="8" width="8" height="8" rx="2" transform="rotate(-45 12 12)" />
+      </>
+    ),
+    spark: (
+      <path d="m12 3 1.7 5.3L19 10l-5.3 1.7L12 17l-1.7-5.3L5 10l5.3-1.7L12 3Zm6 13 .8 2.2L21 19l-2.2.8L18 22l-.8-2.2L15 19l2.2-.8L18 16Z" />
+    ),
+    upload: (
+      <>
+        <path d="M12 16V4m0 0L7 9m5-5 5 5" />
+        <path d="M5 15v4h14v-4" />
+      </>
+    ),
+    x: <path d="M6 6l12 12M18 6 6 18" />,
+  };
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {paths[name]}
+    </svg>
+  );
+}
+
+const navItems: { id: Page; label: string; icon: IconName }[] = [
+  { id: "home", label: "Home", icon: "home" },
+  { id: "classify", label: "Image Classification", icon: "image" },
+  { id: "model", label: "About the Model", icon: "model" },
+  { id: "research", label: "Research Results", icon: "chart" },
+];
+
+// Local development uses the FastAPI server on port 8000.
+// For an online deployment, set VITE_API_BASE_URL to your deployed backend URL.
+const configuredApiUrl = (
+  import.meta as ImportMeta & { env?: { VITE_API_BASE_URL?: string } }
+).env?.VITE_API_BASE_URL;
+
+const API_BASE_URL = (
+  configuredApiUrl?.trim() ||
+  (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+    ? "http://127.0.0.1:8000"
+    : window.location.origin)
+).replace(/\/+$/, "");
+
+function Brand() {
+  return (
+    <div className="brand">
+      <span className="brand-orbit">
+        <Icon name="satellite" size={17} />
+      </span>
+      <span>
+        SatelliteVision <b>AI</b>
+        <small>Research System</small>
+      </span>
+    </div>
+  );
+}
+
+function PageTitle({
+  eyebrow,
+  title,
+  description,
+  action,
+}: {
+  eyebrow: string;
+  title: string;
+  description: string;
+  action?: ReactNode;
+}) {
+  return (
+    <header className="page-title">
+      <div>
+        <span>{eyebrow}</span>
+        <h1>{title}</h1>
+        <p>{description}</p>
+      </div>
+      {action}
+    </header>
+  );
+}
+
+function HomePage({ navigate }: { navigate: (page: Page) => void }) {
+  const classes = [
+    {
+      name: "Forest",
+      description: "Tree cover and forest land",
+      image: IMAGES.forest,
+      color: "green",
+    },
+    {
+      name: "Residential",
+      description: "Buildings and developed areas",
+      image: IMAGES.residential,
+      color: "amber",
+    },
+    { name: "SeaLake", description: "Permanent water bodies", image: IMAGES.water, color: "cyan" },
+  ];
+  return (
+    <div className="page home-page">
+      <section className="home-hero">
+        <div className="hero-copy">
+          <div className="status-pill">
+            <i />
+            RESEARCH MODEL ONLINE
+            <span>v1.0</span>
+          </div>
+          <h1>
+            SatelliteVision <em>AI</em>
+          </h1>
+          <h2>Intelligent Satellite Image Classification</h2>
+          <p>
+            A deep learning research system for precise land-cover analysis, powered by a fully
+            fine-tuned ResNet18 and designed to evaluate geographic generalization.
+          </p>
+          <div className="hero-actions">
+            <button className="primary-btn" onClick={() => navigate("classify")}>
+              Start Classification <Icon name="arrow" size={17} />
+            </button>
+            <button className="ghost-btn" onClick={() => navigate("model")}>
+              Explore the model
+            </button>
+          </div>
+          <div className="hero-meta">
+            <span>
+              <Icon name="check" size={14} /> EuroSAT pretrained
+            </span>
+            <span>
+              <Icon name="check" size={14} /> PyTorch framework
+            </span>
+          </div>
+        </div>
+        <div className="earth-visual">
+          <div className="earth-frame">
+            <img src={IMAGES.hero} alt="Satellite view of a city meeting the coast" />
+            <div className="earth-grid" />
+            <div className="coordinates top">
+              <span>SV // EARTH OBSERVATION</span>
+              <span>LIVE FEED</span>
+            </div>
+            <div className="coordinates bottom">
+              <span>30.5928° N</span>
+              <span>ALT 705 KM</span>
+              <span>114.3055° E</span>
+            </div>
+            <div className="target target-a">
+              <span />
+              FOREST
+            </div>
+            <div className="target target-b">
+              <span />
+              WATER
+            </div>
+            <div className="reticle">
+              <i />
+            </div>
+          </div>
+          <div className="inference-chip">
+            <span>
+              <Icon name="brain" size={18} />
+            </span>
+            <div>
+              <small>Inference engine</small>
+              <strong>ResNet18</strong>
+            </div>
+            <i />
+          </div>
+        </div>
+      </section>
+
+      <section className="class-section">
+        <div className="section-intro">
+          <div>
+            <span className="eyebrow">TARGET TAXONOMY</span>
+            <h2>Three classes. One precise model.</h2>
+          </div>
+          <p>
+            Focused classification for the most visually distinct land-cover types in satellite
+            imagery.
+          </p>
+        </div>
+        <div className="class-grid">
+          {classes.map((item, index) => (
+            <article className="land-card" key={item.name}>
+              <img src={item.image} alt={`Aerial ${item.name.toLowerCase()} landscape`} />
+              <div className="land-overlay" />
+              <span className={`class-index ${item.color}`}>0{index + 1}</span>
+              <div>
+                <span className={`category-dot ${item.color}`} />
+                <h3>{item.name}</h3>
+                <p>{item.description}</p>
+              </div>
+              <Icon name="chevron" size={18} />
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="overview-grid">
+        <article className="model-overview panel">
+          <div className="panel-heading">
+            <div>
+              <span className="eyebrow">MODEL OVERVIEW</span>
+              <h2>Research configuration</h2>
+            </div>
+            <span className="model-badge">
+              <Icon name="brain" size={15} /> RESNET
+            </span>
+          </div>
+          <div className="overview-metrics">
+            <div>
+              <span>Architecture</span>
+              <strong>ResNet18</strong>
+              <small>18 residual layers</small>
+            </div>
+            <div>
+              <span>Training patches</span>
+              <strong>105</strong>
+              <small>35 per category</small>
+            </div>
+            <div>
+              <span>Target classes</span>
+              <strong>03</strong>
+              <small>Balanced dataset</small>
+            </div>
+          </div>
+        </article>
+        <article className="focus-card panel">
+          <span className="focus-icon">
+            <Icon name="globe" />
+          </span>
+          <div>
+            <span className="eyebrow">RESEARCH FOCUS</span>
+            <h2>Generalization beyond the training geography</h2>
+            <p>
+              Measuring how efficiently a compact dataset can adapt pretrained features to
+              geographically unseen satellite imagery.
+            </p>
+            <button onClick={() => navigate("research")}>
+              View recorded results <Icon name="arrow" size={15} />
+            </button>
+          </div>
+        </article>
+      </section>
+    </div>
+  );
+}
+
+
+type PredictionResponse = {
+  image_preview?: string | null;
+  image_width?: number;
+  image_height?: number;
+  total_patches: number;
+  predictions: {
+    class: string;
+    confidence: number;
+    probabilities: {
+      Forest: number;
+      Residential: number;
+      SeaLake: number;
+    };
+  }[];
+  summary: {
+    Forest: number;
+    Residential: number;
+    SeaLake: number;
+  };
+};
+
+function ClassificationPage() {
+  const [classifiedMapPreview, setClassifiedMapPreview] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const [selectedPatch, setSelectedPatch] = useState<number | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const [result, setResult] = useState<PredictionResponse | null>(null);
+  const [error, setError] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const resetResults = () => {
+    setShowResults(false);
+    setResult(null);
+    setImagePreview(null);
+    setClassifiedMapPreview(null);
+    setSelectedPatch(null);
+  };
+
+  const useFile = (next?: File) => {
+    if (!next) return;
+
+    const allowedExtensions = [
+      ".npy",
+      ".tif",
+      ".tiff",
+      ".jp2",
+      ".png",
+      ".jpg",
+      ".jpeg",
+    ];
+
+    const extension = next.name.includes(".")
+      ? next.name.slice(next.name.lastIndexOf(".")).toLowerCase()
+      : "";
+
+    if (!allowedExtensions.includes(extension)) {
+      setError("Unsupported file. Please select NPY, TIFF, JP2, PNG, or JPG.");
+      setFile(null);
+      resetResults();
+      return;
+    }
+
+    setFile(next);
+    resetResults();
+    setError("");
+  };
+
+  const onInput = (event: ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0];
+    // Reset the input so selecting the same file again still fires onChange.
+    event.target.value = "";
+    useFile(selectedFile);
+  };
+
+  const onDrop = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setDragging(false);
+    useFile(event.dataTransfer.files?.[0]);
+  };
+
+  const classify = async () => {
+    if (!file || loading) return;
+
+    setLoading(true);
+    setError("");
+    resetResults();
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const isNpy = file.name.toLowerCase().endsWith(".npy");
+      const endpoint = `${API_BASE_URL}${isNpy ? "/predict" : "/predict-image"}`;
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        body: formData,
+      });
+
+      const responseText = await response.text();
+      let data: any;
+
+      try {
+        data = responseText ? JSON.parse(responseText) : {};
+      } catch {
+        throw new Error(
+          `The backend returned an unexpected response (HTTP ${response.status}). Check that the API is running at ${API_BASE_URL}.`
+        );
+      }
+
+      if (!response.ok) {
+        const detail =
+          typeof data.detail === "string"
+            ? data.detail
+            : `Request failed with HTTP ${response.status}.`;
+        throw new Error(detail);
+      }
+
+      if (!Array.isArray(data.predictions) || !data.summary) {
+        throw new Error("The backend response is missing predictions or summary data.");
+      }
+
+      const predictionData = data as PredictionResponse;
+      setResult(predictionData);
+      setImagePreview(predictionData.image_preview ?? null);
+      generateClassifiedMapPreview(predictionData);
+      setSelectedPatch(null);
+      setShowResults(true);
+    } catch (err) {
+      if (err instanceof TypeError) {
+        setError(
+          `Cannot connect to the backend at ${API_BASE_URL}. Make sure the Python API is running. If this website is online, set VITE_API_BASE_URL to your deployed backend address and allow this website in the backend CORS settings.`
+        );
+      } else {
+        setError(err instanceof Error ? err.message : "Classification failed. Please try again.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const exportCsv = () => {
+    if (!result) return;
+
+    const csv = [
+      "Patch,Predicted Class,Confidence",
+      ...result.predictions.map((prediction, index) =>
+        [
+          `Patch ${index + 1}`,
+          prediction.class,
+          `${prediction.confidence.toFixed(2)}%`,
+        ].join(",")
+      ),
+    ].join("\n");
+
+    const url = URL.createObjectURL(
+      new Blob([csv], { type: "text/csv" })
+    );
+
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "satellitevision_predictions.csv";
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
+  const generateClassifiedMapPreview = (predictionResult: PredictionResponse) => {
+  if (
+    !predictionResult.image_width ||
+    !predictionResult.image_height ||
+    !Array.isArray(predictionResult.predictions) ||
+    predictionResult.predictions.length === 0
+  ) return;
+
+  const width = predictionResult.image_width;
+  const height = predictionResult.image_height;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  const columns = Math.ceil(width / 64);
+  if (columns < 1) return;
+
+  const colors: Record<string, string> = {
+    Forest: "#22a06b",
+    Residential: "#e6a23c",
+    SeaLake: "#2698cf",
+  };
+  predictionResult.predictions.forEach((prediction, index) => {
+    const x = (index % columns) * 64;
+    const y = Math.floor(index / columns) * 64;
+
+    ctx.fillStyle = colors[prediction.class] || "#999999";
+
+    ctx.fillRect(
+      x,
+      y,
+      Math.min(64, width - x),
+      Math.min(64, height - y)
+    );
+  });
+
+  setClassifiedMapPreview(canvas.toDataURL("image/png"));
+};
+const downloadClassifiedMap = () => {
+  if (!result?.image_width || !result?.image_height) return;
+
+  const width = result.image_width;
+  const height = result.image_height;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  const columns = Math.ceil(width / 64);
+  if (columns < 1) return;
+
+  const colors: Record<string, string> = {
+    Forest: "#22a06b",
+    Residential: "#e6a23c",
+    SeaLake: "#2698cf",
+  };
+
+  result.predictions.forEach((prediction, index) => {
+    const x = (index % columns) * 64;
+    const y = Math.floor(index / columns) * 64;
+
+    ctx.fillStyle = colors[prediction.class] || "#999999";
+
+    ctx.fillRect(
+      x,
+      y,
+      Math.min(64, width - x),
+      Math.min(64, height - y)
+    );
+  });
+
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = "satellitevision-classified-map.png";
+    link.click();
+
+    URL.revokeObjectURL(url);
+  }, "image/png");
+};
+  const classNames = ["Forest", "Residential", "SeaLake"] as const;
+  const colors = ["green", "amber", "cyan"];
+
+  return (
+    <div className="page">
+      <PageTitle
+        eyebrow="INFERENCE WORKSPACE"
+        title="Image Classification"
+        description="Upload NumPy satellite patches and inspect model predictions with class-level confidence."
+        action={
+          <div className="page-status">
+            <i /> MODEL READY <span>LIVE INFERENCE</span>
+          </div>
+        }
+      />
+
+      <section className="workspace-grid">
+        <div className="upload-workspace panel">
+          <div className="panel-heading compact">
+            <div>
+              <span className="step-number">01</span>
+              <div>
+                <h2>Upload satellite data</h2>
+                <p>Choose a NumPy patch batch or a supported satellite image</p>
+              </div>
+            </div>
+            <span className="format-badge">NPY · TIFF · JP2 · PNG · JPG</span>
+          </div>
+
+          <div
+            className={`npy-dropzone ${dragging ? "dragging" : ""} ${file ? "has-file" : ""}`}
+            onDragEnter={() => setDragging(true)}
+            onDragLeave={() => setDragging(false)}
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={onDrop}
+            onClick={() => inputRef.current?.click()}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                inputRef.current?.click();
+              }
+            }}
+            role="button"
+            tabIndex={0}
+            aria-label="Choose a satellite image or NumPy file"
+          >
+            <input
+              ref={inputRef}
+              hidden
+              type="file"
+              accept=".npy,.tif,.tiff,.jp2,.png,.jpg,.jpeg"
+              onChange={onInput}
+              onClick={(event) => event.stopPropagation()}
+            />
+
+            {file ? (
+              <>
+                <span className="file-ready">
+                  <Icon name="file" size={27} />
+                  <i><Icon name="check" size={12} /></i>
+                </span>
+                <h3>{file.name}</h3>
+                <p>{(file.size / 1024).toFixed(1)} KB · {file.name.split(".").pop()?.toUpperCase()} file</p>
+                <button
+                  className="remove-file"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setFile(null);
+                    resetResults();
+                    setError("");
+                  }}
+                >
+                  <Icon name="x" size={14} /> Remove file
+                </button>
+              </>
+            ) : (
+              <>
+                <span className="drop-icon">
+                  <Icon name="upload" size={28} />
+                </span>
+                <h3>Drop your satellite image here</h3>
+                <p>or click to browse from your device</p>
+                <button
+                  type="button"
+                  className="outline-btn"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    inputRef.current?.click();
+                  }}
+                >
+                  Browse files
+                </button>
+              </>
+            )}
+          </div>
+
+          <div className="input-specs">
+            <div>
+              <Icon name="grid" size={17} />
+              <span>
+                <small>SUPPORTED SHAPE</small>
+                <strong>(3, 64, 64) or (N, 3, 64, 64)</strong>
+              </span>
+            </div>
+            <div>
+              <Icon name="layers" size={17} />
+              <span>
+                <small>ARRAY FORMAT</small>
+                <strong>NumPy uint16 / float32 / float64</strong>
+              </span>
+            </div>
+          </div>
+
+          <button
+            className="primary-btn classify-cta"
+            disabled={!file || loading}
+            onClick={classify}
+          >
+            {loading ? (
+              <>
+                <i className="spinner" /> Running inference…
+              </>
+            ) : (
+              <>
+                <Icon name="spark" size={17} />
+                Classify Satellite Images
+                <Icon name="arrow" size={17} />
+              </>
+            )}
+          </button>
+
+          {error && (
+            <p className="interface-note">{error}</p>
+          )}
+        </div>
+
+        <div className="prediction-panel panel">
+          <div className="panel-heading compact">
+            <div>
+              <span className="step-number">02</span>
+              <div>
+                <h2>Prediction result</h2>
+                <p>Highest-probability class and distribution</p>
+              </div>
+            </div>
+          </div>
+
+          {!showResults || !result ? (
+            <div className="empty-prediction">
+              <span>
+                <Icon name="brain" size={34} />
+              </span>
+              <h3>Ready for inference</h3>
+              <p>Upload valid satellite data and run the model to inspect predictions.</p>
+              <div><i /><i /><i /></div>
+            </div>
+          ) : (
+            <div className="prediction-content">
+              <div className="winner">
+                <div>
+                  <small>PREDICTED CLASS</small>
+                  <strong>{result.predictions[0]?.class}</strong>
+                  <span>
+                    <Icon name="check" size={12} /> Model prediction
+                  </span>
+                </div>
+
+                <div className="confidence-ring">
+                  <strong>
+                    {result.predictions[0]?.confidence.toFixed(2)}
+                    <small>%</small>
+                  </strong>
+                  <span>CONFIDENCE</span>
+                </div>
+              </div>
+
+              <div className="probability-list">
+                {classNames.map((name) => {
+                  const value =
+                    result.predictions[0]?.probabilities[name] ?? 0;
+
+                  return (
+                    <div
+                      className={
+                        result.predictions[0]?.class === name ? "active" : ""
+                      }
+                      key={name}
+                    >
+                      <p>
+                        <span><i /> {name}</span>
+                        <b>{value.toFixed(2)}%</b>
+                      </p>
+                      <span>
+                        <i style={{ width: `${value}%` }} />
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <p className="interface-note">
+                <Icon name="pulse" size={15} />
+                Predictions generated by your trained ResNet18 model.
+              </p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="band-panel panel">
+        <div>
+          <span className="eyebrow">SPECTRAL INPUT</span>
+          <h2>True-color band composition</h2>
+          <p>
+            Each input patch uses three Sentinel-2 spectral bands arranged as channels-first data.
+          </p>
+        </div>
+
+        <div className="bands">
+          {[
+            ["B04", "Red", "665 nm"],
+            ["B03", "Green", "560 nm"],
+            ["B02", "Blue", "490 nm"],
+          ].map(([band, name, wave], index) => (
+            <article key={band}>
+              <span className={`band-color band-${index}`} />
+              <div>
+                <strong>{band}</strong>
+                <small>{name} band</small>
+              </div>
+              <b>{wave}</b>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      {showResults && result && (
+        <section className="results-section">
+          <div className="summary-grid">
+            {classNames.map((name, index) => {
+              const count = result.summary[name];
+              const share = result.total_patches
+                ? (count / result.total_patches) * 100
+                : 0;
+
+              return (
+                <article className="summary-card panel" key={name}>
+                  <span className={`category-dot ${colors[index]}`} />
+                  <div>
+                    <small>{name.toUpperCase()}</small>
+                    <strong>{String(count).padStart(2, "0")}</strong>
+                    <p>{share.toFixed(1)}% of patches</p>
+                  </div>
+                  <div className={`mini-donut ${colors[index]}`} />
+                </article>
+              );
+            })}
+          </div>
+
+          <div className="table-panel panel">
+            <div className="table-heading">
+              <div>
+                <div className="patch-map-section">
+  <div className="panel-heading">
+    <div>
+      <span className="eyebrow">SPATIAL PREDICTIONS</span>
+      <h2>Satellite patch map</h2>
+      <p>Each square represents one classified 64 × 64 patch.</p>
+    </div>
+  </div>
+
+  <div
+    className="patch-map"
+    style={{
+      gridTemplateColumns: `repeat(${Math.ceil(Math.sqrt(result.predictions.length))}, 1fr)`,
+    }}
+  >
+    {result.predictions.map((prediction, index) => (
+  <button
+    key={index}
+    type="button"
+    className={`patch-cell ${prediction.class.toLowerCase()} ${
+      selectedPatch === index ? "selected" : ""
+    }`}
+    title={`Patch ${index + 1}: ${prediction.class} (${prediction.confidence.toFixed(2)}%)`}
+    onClick={() => setSelectedPatch(index)}
+  />
+))}
+  </div>
+{/* Original satellite image */}
+{/* Original and classified image comparison */}
+{imagePreview && classifiedMapPreview && (
+  <div className="image-comparison">
+    <div className="comparison-card">
+      <h3>Original satellite image</h3>
+
+      <div className="original-image-container">
+        <img src={imagePreview} alt="Original satellite image" />
+
+        {selectedPatch !== null && result && result.image_width && result.image_height && (
+          <div
+            className="selected-image-patch"
+            style={{
+              left: `${((selectedPatch % Math.ceil(result.image_width / 64)) * 64 / result.image_width) * 100}%`,
+              top: `${(Math.floor(selectedPatch / Math.ceil(result.image_width / 64)) * 64 / result.image_height) * 100}%`,
+              width: `${(Math.min(64, result.image_width - (selectedPatch % Math.ceil(result.image_width / 64)) * 64) / result.image_width) * 100}%`,
+              height: `${(Math.min(64, result.image_height - Math.floor(selectedPatch / Math.ceil(result.image_width / 64)) * 64) / result.image_height) * 100}%`,
+            }}
+          />
+        )}
+      </div>
+    </div>
+
+    <div className="comparison-card">
+      <h3>Classified satellite map</h3>
+
+      <img
+        src={classifiedMapPreview}
+        alt="Classified satellite map"
+      />
+    </div>
+  </div>
+)}
+{/* Selected patch details */}
+{selectedPatch !== null && result && (
+  <div className="selected-patch-info">
+    <strong>Patch {selectedPatch + 1}</strong>
+
+    <span>
+      Predicted class: {result.predictions[selectedPatch].class}
+    </span>
+
+    <span>
+      Confidence: {result.predictions[selectedPatch].confidence.toFixed(2)}%
+    </span>
+
+    <div className="patch-probabilities">
+      <strong>Class probabilities</strong>
+
+      {(["Forest", "Residential", "SeaLake"] as const).map((className) => {
+        const probability =
+          result.predictions[selectedPatch].probabilities[className];
+
+        return (
+          <div className="probability-row" key={className}>
+            <div className="probability-label">
+              <span>{className}</span>
+              <span>{probability.toFixed(2)}%</span>
+            </div>
+
+            <div className="probability-track">
+              <div
+                className={`probability-fill ${className.toLowerCase()}`}
+                style={{ width: `${probability}%` }}
+              />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+
+    <button onClick={() => setSelectedPatch(null)}>
+      Clear selection
+    </button>
+  </div>
+)}
+  <div className="patch-map-legend">
+    <span><i className="forest" /> Forest</span>
+    <span><i className="residential" /> Residential</span>
+    <span><i className="sealake" /> SeaLake</span>
+  </div>
+</div>
+                <h2>Batch prediction results</h2>
+                <p>
+                  {result.total_patches} satellite patches processed successfully
+                </p>
+              </div>
+
+              <button className="outline-btn" onClick={exportCsv}>
+  <Icon name="download" size={15} /> Export CSV
+</button>
+
+<button
+  className="outline-btn"
+  onClick={downloadClassifiedMap}
+  disabled={!result?.image_width || !result?.image_height}
+>
+  <Icon name="download" size={15} /> Download Classified Map
+</button>
+            <div className="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>PATCH NUMBER</th>
+                    <th>PREDICTED CLASS</th>
+                    <th>CONFIDENCE</th>
+                    <th>STATUS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {result.predictions.map((prediction, index) => (
+                    <tr key={index}>
+                      <td>Patch {index + 1}</td>
+                      <td>
+                        <span className={`table-class ${prediction.class.toLowerCase()}`}>
+                          <i /> {prediction.class}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="table-confidence">
+                          <span>
+                            <i style={{ width: `${prediction.confidence}%` }} />
+                          </span>
+                          {prediction.confidence.toFixed(2)}%
+                        </div>
+                      </td>
+                      <td>
+                        <span className="success-badge">
+                          <Icon name="check" size={11} /> COMPLETE
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                           </table>
+            </div>
+          </div>
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}
+
+function ModelPage() {
+  const specs = [
+    ["Architecture", "ResNet18", "18-layer residual convolutional network", "brain"],
+    ["Initial weights", "EuroSAT", "Pretrained remote-sensing features", "database"],
+    ["Fine-tuning", "Full network", "All model layers optimized", "model"],
+    ["Training set", "105 samples", "35 balanced patches per class", "grid"],
+    ["Input dimensions", "64 × 64", "Three-channel image patches", "image"],
+    ["Spectral bands", "B04 · B03 · B02", "Red, green and blue channels", "layers"],
+  ] as [string, string, string, IconName][];
+  const workflow = [
+    ["Upload", "NumPy tensor", "upload"],
+    ["Preprocessing", "Normalize bands", "layers"],
+    ["ResNet18", "Extract features", "brain"],
+    ["Softmax", "Class probability", "chart"],
+    ["Prediction", "Final category", "check"],
+  ] as [string, string, IconName][];
+  return (
+    <div className="page">
+      <PageTitle
+        eyebrow="SCIENTIFIC OVERVIEW"
+        title="About the Model"
+        description="Architecture, training configuration, and inference workflow for the land-cover classifier."
+        action={
+          <span className="framework-badge">
+            <Icon name="spark" size={15} /> BUILT WITH PYTORCH
+          </span>
+        }
+      />
+
+      <section className="architecture-hero panel">
+        <div className="architecture-copy">
+          <span className="eyebrow">CORE ARCHITECTURE</span>
+          <h2>ResNet18</h2>
+          <p>
+            A compact residual neural network selected for its strong feature extraction, stable
+            optimization, and efficient inference on limited training data.
+          </p>
+          <div>
+            <span>
+              <b>18</b> weighted layers
+            </span>
+            <span>
+              <b>11.7M</b> parameters
+            </span>
+            <span>
+              <b>100%</b> layers fine-tuned
+            </span>
+          </div>
+        </div>
+        <div className="network-visual">
+          {[4, 5, 4, 3, 1].map((nodes, group) => (
+            <div className={`node-group group-${group}`} key={group}>
+              {Array.from({ length: nodes }).map((_, node) => (
+                <i key={node} />
+              ))}
+              {group < 4 && <span />}
+            </div>
+          ))}
+          <div className="network-labels">
+            <span>INPUT</span>
+            <span>RESIDUAL BLOCKS</span>
+            <span>OUTPUT</span>
+          </div>
+        </div>
+      </section>
+
+      <section className="spec-grid">
+        {specs.map(([label, value, description, icon], index) => (
+          <article className="spec-card panel" key={label}>
+            <div>
+              <span className="spec-icon">
+                <Icon name={icon} size={19} />
+              </span>
+              <small>0{index + 1}</small>
+            </div>
+            <p>{label}</p>
+            <h3>{value}</h3>
+            <span>{description}</span>
+          </article>
+        ))}
+      </section>
+
+      <section className="workflow-panel panel">
+        <div className="section-intro">
+          <div>
+            <span className="eyebrow">INFERENCE PIPELINE</span>
+            <h2>From tensor to prediction</h2>
+          </div>
+          <p>
+            A reproducible five-step workflow transforms raw satellite arrays into class
+            probabilities.
+          </p>
+        </div>
+        <div className="workflow">
+          {workflow.map(([title, description, icon], index) => (
+            <div className="workflow-step" key={title}>
+              <div className="workflow-index">0{index + 1}</div>
+              <span>
+                <Icon name={icon} size={21} />
+              </span>
+              <strong>{title}</strong>
+              <small>{description}</small>
+              {index < workflow.length - 1 && (
+                <i className="workflow-arrow">
+                  <Icon name="chevron" size={15} />
+                </i>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="objective-panel panel">
+        <div className="objective-icon">
+          <Icon name="globe" size={27} />
+          <i />
+        </div>
+        <div>
+          <span className="eyebrow">RESEARCH OBJECTIVE</span>
+          <h2>Efficient adaptation. Geographic generalization.</h2>
+          <p>
+            This research investigates whether full fine-tuning of a pretrained ResNet18 can produce
+            a reliable three-class land-cover model from only 105 labeled samples. External
+            evaluation on Hangzhou imagery measures the model&apos;s ability to transfer beyond the
+            Wuhan training geography.
+          </p>
+        </div>
+        <aside>
+          <span>PRIMARY HYPOTHESIS</span>
+          <p>
+            Pretrained visual features can be efficiently adapted to unseen regions with a small,
+            balanced dataset.
+          </p>
+        </aside>
+      </section>
+    </div>
+  );
+}
+
+const studies = [
+  { location: "Wuhan", date: "September 21", accuracy: 96.59, f1: 93.47, type: "Temporal test I" },
+  { location: "Wuhan", date: "September 26", accuracy: 91.07, f1: 86.03, type: "Temporal test II" },
+  {
+    location: "Hangzhou",
+    date: "External",
+    accuracy: 96.57,
+    f1: 95.81,
+    type: "Geographic external",
+  },
+];
+
+function ComparisonChart({ metric }: { metric: "accuracy" | "f1" }) {
+  const values = studies.map((item) => (metric === "accuracy" ? item.accuracy : item.f1));
+  return (
+    <div className="horizontal-chart">
+      <div className="chart-scale">
+        <span>80%</span>
+        <span>85%</span>
+        <span>90%</span>
+        <span>95%</span>
+        <span>100%</span>
+      </div>
+      {studies.map((study, index) => (
+        <div className="chart-row" key={`${metric}-${study.location}-${study.date}`}>
+          <div>
+            <strong>{study.location}</strong>
+            <small>{study.date}</small>
+          </div>
+          <span className="chart-track">
+            <i style={{ width: `${((values[index] - 80) / 20) * 100}%` }} />
+            <b style={{ left: `${((values[index] - 80) / 20) * 100}%` }}>
+              {values[index].toFixed(2)}%
+            </b>
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ResearchPage() {
+  return (
+    <div className="page">
+      <PageTitle
+        eyebrow="RECORDED EVALUATION"
+        title="Research Results"
+        description="Comparative evaluation across temporal Wuhan datasets and geographically external Hangzhou imagery."
+        action={
+          <span className="verified-badge">
+            <Icon name="check" size={13} /> VERIFIED RESULTS
+          </span>
+        }
+      />
+
+      <section className="study-grid">
+        {studies.map((study, index) => (
+          <article
+            className={`study-card panel study-${index}`}
+            key={`${study.location}-${study.date}`}
+          >
+            <div className="study-heading">
+              <div>
+                <span>
+                  {index === 2 && <Icon name="globe" size={13} />}
+                  {study.type}
+                </span>
+                <h2>{study.location}</h2>
+                <p>{study.date}</p>
+              </div>
+              <span className="study-index">0{index + 1}</span>
+            </div>
+            <div className="study-metrics">
+              <div>
+                <small>ACCURACY</small>
+                <strong>
+                  {study.accuracy.toFixed(2)}
+                  <span>%</span>
+                </strong>
+              </div>
+              <div>
+                <small>MACRO F1</small>
+                <strong>
+                  {study.f1.toFixed(2)}
+                  <span>%</span>
+                </strong>
+              </div>
+            </div>
+            <div className="score-line">
+              <i style={{ width: `${study.accuracy}%` }} />
+            </div>
+          </article>
+        ))}
+      </section>
+
+      <section className="charts-grid">
+        <article className="comparison-card panel">
+          <div className="panel-heading">
+            <div>
+              <span className="eyebrow">METRIC COMPARISON</span>
+              <h2>Accuracy comparison</h2>
+            </div>
+            <span className="chart-legend">
+              <i /> Accuracy
+            </span>
+          </div>
+          <ComparisonChart metric="accuracy" />
+        </article>
+        <article className="comparison-card panel cyan-chart">
+          <div className="panel-heading">
+            <div>
+              <span className="eyebrow">METRIC COMPARISON</span>
+              <h2>Macro F1 comparison</h2>
+            </div>
+            <span className="chart-legend">
+              <i /> Macro F1
+            </span>
+          </div>
+          <ComparisonChart metric="f1" />
+        </article>
+      </section>
+
+      <section className="generalization-panel panel">
+        <div className="generalization-visual">
+          <div className="city city-a">
+            <i />
+            <strong>WUHAN</strong>
+            <span>TRAIN / TEST</span>
+          </div>
+          <span className="geo-line">
+            <i />
+            <b>~560 KM</b>
+          </span>
+          <div className="city city-b">
+            <i />
+            <strong>HANGZHOU</strong>
+            <span>EXTERNAL</span>
+          </div>
+        </div>
+        <div className="generalization-copy">
+          <span className="eyebrow">GEOGRAPHIC GENERALIZATION</span>
+          <h2>Strong performance beyond the training region</h2>
+          <p>
+            The model achieved 96.57% accuracy and 95.81% Macro F1 on geographically unseen Hangzhou
+            imagery. This result indicates that the learned land-cover features remained robust
+            across regional differences.
+          </p>
+          <div>
+            <span>
+              <Icon name="check" size={13} /> Unseen geography
+            </span>
+            <span>
+              <Icon name="check" size={13} /> No target-region fine-tuning
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <div className="research-disclaimer">
+        <Icon name="file" size={17} />
+        <p>
+          <strong>Recorded research evaluation results</strong>
+          These values are fixed outputs from controlled model evaluation experiments and are not
+          live results from user-uploaded data.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+export default function App() {
+  const getInitialPage = (): Page => {
+    const hash = window.location.hash.replace("#/", "") as Page;
+    return navItems.some((item) => item.id === hash) ? hash : "home";
+  };
+  const [page, setPage] = useState<Page>(getInitialPage);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    const onHash = () => setPage(getInitialPage());
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+
+  const navigate = (next: Page) => {
+    window.location.hash = `/${next}`;
+    setPage(next);
+    setMobileOpen(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  return (
+    <div className="dashboard-shell">
+      <aside className={`sidebar ${mobileOpen ? "open" : ""}`}>
+        <div className="sidebar-top">
+          <Brand />
+          <button
+            className="sidebar-close"
+            onClick={() => setMobileOpen(false)}
+            aria-label="Close navigation"
+          >
+            <Icon name="x" />
+          </button>
+        </div>
+        <nav aria-label="Application navigation">
+          <span>WORKSPACE</span>
+          {navItems.map((item) => (
+            <button
+              className={page === item.id ? "active" : ""}
+              onClick={() => navigate(item.id)}
+              key={item.id}
+            >
+              <Icon name={item.icon} size={18} />
+              {item.label}
+              {page === item.id && <i />}
+            </button>
+          ))}
+        </nav>
+        <div className="sidebar-spacer" />
+        <div className="system-card">
+          <div>
+            <span>
+              <i /> SYSTEM STATUS
+            </span>
+            <b>Operational</b>
+          </div>
+          <dl>
+            <div>
+              <dt>Model</dt>
+              <dd>ResNet18</dd>
+            </div>
+            <div>
+              <dt>Classes</dt>
+              <dd>3 active</dd>
+            </div>
+            <div>
+              <dt>Input</dt>
+              <dd>64 × 64</dd>
+            </div>
+          </dl>
+        </div>
+        <div className="sidebar-footer">
+          <span>SV AI</span>
+          <div>
+            <strong>CS Research Project</strong>
+            <small>Academic Edition · 2025</small>
+          </div>
+        </div>
+      </aside>
+      {mobileOpen && (
+        <button
+          className="sidebar-backdrop"
+          onClick={() => setMobileOpen(false)}
+          aria-label="Close menu"
+        />
+      )}
+
+      <div className="main-shell">
+        <header className="mobile-header">
+          <Brand />
+          <button onClick={() => setMobileOpen(true)} aria-label="Open navigation">
+            <Icon name="menu" />
+          </button>
+        </header>
+        <main>
+          {page === "home" && <HomePage navigate={navigate} />}
+          {page === "classify" && <ClassificationPage />}
+          {page === "model" && <ModelPage />}
+          {page === "research" && <ResearchPage />}
+        </main>
+        <footer className="app-footer">
+          <span>SatelliteVision AI · Computer Science Research Project</span>
+          <span>ResNet18 · PyTorch · Earth Observation</span>
+        </footer>
+      </div>
+    </div>
+  );
+}

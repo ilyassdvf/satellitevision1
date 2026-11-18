@@ -1,0 +1,1077 @@
+
+import { useMemo, useRef, useState } from "react";
+
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+
+const CLASSES = [
+  { name: "Tree cover", color: "#228B22" },
+  { name: "Grassland", color: "#90C957" },
+  { name: "Cropland", color: "#E6C229" },
+  { name: "Built-up", color: "#D95F5F" },
+  { name: "Permanent water", color: "#318CE7" },
+];
+
+const MAX_FILE_SIZE = 50 * 1024 * 1024;
+
+type Prediction = {
+  patch_index: number;
+  predicted_class: string;
+  class_index: number;
+  confidence: number;
+  probabilities: Record<string, number>;
+  row?: number;
+  col?: number;
+};
+
+type SummaryItem = {
+  class_name: string;
+  count: number;
+  percentage: number;
+  average_confidence: number;
+  color: string;
+};
+
+type ApiResult = {
+  filename: string;
+  image_type: string;
+  total_patches: number;
+  patch_size: number;
+  patch_grid?: {
+    rows: number;
+    cols: number;
+  };
+  skipped_patches?: number;
+  selected_bands?: {
+    red: number;
+    green: number;
+    blue: number;
+    method: string;
+  };
+  image_dimensions?: {
+    width: number;
+    height: number;
+  };
+  crs?: string | null;
+  predictions: Prediction[];
+  summary: SummaryItem[];
+  preview_image?: string;
+  preview_description?: string;
+  warning?: string;
+};
+
+function App() {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [file, setFile] = useState<File | null>(null);
+  const [result, setResult] = useState<ApiResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [dragging, setDragging] = useState(false);
+
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "predictions" | "map"
+  >("overview");
+
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const accuracy = 86.50;
+  const macroF1 = 72.88;
+  const macroRecall = 73.29;
+
+  const selectedFileSize = useMemo(() => {
+    if (!file) return "";
+    return (file.size / (1024 * 1024)).toFixed(2) + " MB";
+  }, [file]);
+
+  const filteredPredictions = useMemo(() => {
+    if (!result) return [];
+
+    return result.predictions.filter((prediction) =>
+      prediction.predicted_class
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase())
+    );
+  }, [result, searchTerm]);
+
+  function validateFile(selectedFile: File) {
+    const extension = selectedFile.name
+      .split(".")
+      .pop()
+      ?.toLowerCase();
+
+    if (!["npy", "tif", "tiff"].includes(extension || "")) {
+      setError("Unsupported file. Please upload NPY or GeoTIFF.");
+      return false;
+    }
+
+    if (selectedFile.size > MAX_FILE_SIZE) {
+      setError("File is too large. Maximum file size is 50 MB.");
+      return false;
+    }
+
+    if (selectedFile.size === 0) {
+      setError("The selected file is empty.");
+      return false;
+    }
+
+    return true;
+  }
+
+  function selectFile(selectedFile: File) {
+    setError("");
+    setResult(null);
+    setActiveTab("overview");
+    setSearchTerm("");
+
+    if (!validateFile(selectedFile)) return;
+
+    setFile(selectedFile);
+  }
+
+  function handleFileChange(
+    event: React.ChangeEvent<HTMLInputElement>
+  ) {
+    const selectedFile = event.target.files?.[0];
+
+    if (selectedFile) {
+      selectFile(selectedFile);
+    }
+
+    event.target.value = "";
+  }
+
+  function handleDrop(event: React.DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    setDragging(false);
+
+    const droppedFile = event.dataTransfer.files?.[0];
+
+    if (droppedFile) {
+      selectFile(droppedFile);
+    }
+  }
+
+  async function classifyImage() {
+    if (!file) {
+      setError("Please select a file first.");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    setResult(null);
+
+    try {
+      const extension = file.name
+        .split(".")
+        .pop()
+        ?.toLowerCase();
+
+      const endpoint =
+        extension === "npy"
+          ? `${API_BASE_URL}/predict`
+          : `${API_BASE_URL}/predict-image`;
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        body: formData,
+      });
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          responseData.detail || "Classification failed."
+        );
+      }
+
+      if (!responseData.predictions) {
+        throw new Error("The API returned an invalid response.");
+      }
+
+      setResult(responseData);
+      setActiveTab("overview");
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "An unexpected error occurred.";
+
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function clearResults() {
+    setFile(null);
+    setResult(null);
+    setError("");
+    setSearchTerm("");
+    setActiveTab("overview");
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }
+
+  function downloadJSON() {
+    if (!result) return;
+
+    const exportData = {
+      application: "SatelliteVision AI",
+      filename: result.filename,
+      image_type: result.image_type,
+      total_patches: result.total_patches,
+      patch_size: result.patch_size,
+      patch_grid: result.patch_grid,
+      selected_bands: result.selected_bands,
+      image_dimensions: result.image_dimensions,
+      summary: result.summary,
+      predictions: result.predictions,
+      exported_at: new Date().toISOString(),
+    };
+
+    const blob = new Blob(
+      [JSON.stringify(exportData, null, 2)],
+      { type: "application/json" }
+    );
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = "satellitevision_predictions.json";
+    link.click();
+
+    URL.revokeObjectURL(url);
+  }
+
+  function getClassColor(className: string) {
+    return (
+      CLASSES.find((item) => item.name === className)?.color ||
+      "#999999"
+    );
+  }
+
+  const firstPrediction = result?.predictions?.[0];
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-white">
+
+      {/* NAVIGATION */}
+      <nav className="border-b border-white/10 bg-slate-950/90">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500 text-xl font-bold text-slate-950">
+              S
+            </div>
+
+            <div>
+              <h1 className="text-xl font-bold tracking-tight">
+                SatelliteVision AI
+              </h1>
+              <p className="text-xs text-slate-400">
+                Intelligent land-cover classification
+              </p>
+            </div>
+          </div>
+
+          <div className="hidden items-center gap-6 text-sm text-slate-300 md:flex">
+            <a href="#about" className="hover:text-emerald-400">
+              About
+            </a>
+            <a href="#technology" className="hover:text-emerald-400">
+              Technology
+            </a>
+            <a href="#classifier" className="hover:text-emerald-400">
+              Classifier
+            </a>
+          </div>
+        </div>
+      </nav>
+
+      {/* HERO */}
+      <section className="relative overflow-hidden border-b border-white/10">
+        <div className="absolute inset-0 bg-gradient-to-br from-emerald-950/60 via-slate-950 to-blue-950/40" />
+
+        <div className="relative mx-auto grid max-w-7xl gap-12 px-6 py-24 md:grid-cols-2 md:items-center">
+          <div>
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-2 text-sm text-emerald-300">
+              <span className="h-2 w-2 rounded-full bg-emerald-400" />
+              AI-powered satellite analysis
+            </div>
+
+            <h2 className="text-4xl font-bold leading-tight md:text-6xl">
+              Understand the Earth
+              <span className="block text-emerald-400">
+                through AI.
+              </span>
+            </h2>
+
+            <p className="mt-6 max-w-xl text-lg leading-8 text-slate-300">
+              Upload satellite imagery and classify land-cover
+              categories using a deep-learning ResNet18 model
+              trained on Wuhan satellite data.
+            </p>
+
+            <a
+              href="#classifier"
+              className="mt-8 inline-block rounded-xl bg-emerald-400 px-7 py-4 font-bold text-slate-950 transition hover:bg-emerald-300"
+            >
+              Start classification
+            </a>
+          </div>
+
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-7 backdrop-blur">
+            <p className="text-sm font-semibold uppercase tracking-widest text-slate-400">
+              Model evaluation
+            </p>
+
+            <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-3">
+              <MetricCard
+                label="Accuracy"
+                value={`${accuracy.toFixed(2)}%`}
+              />
+
+              <MetricCard
+                label="Macro F1"
+                value={`${macroF1.toFixed(2)}%`}
+              />
+
+              <MetricCard
+                label="Macro Recall"
+                value={`${macroRecall.toFixed(2)}%`}
+              />
+            </div>
+
+            <p className="mt-7 text-xs leading-5 text-slate-400">
+              These are the recorded held-out test metrics of
+              the deployed model, not measurements calculated
+              from the currently uploaded image.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ABOUT */}
+      <section id="about" className="mx-auto max-w-7xl px-6 py-20">
+        <div className="max-w-3xl">
+          <p className="text-sm font-semibold uppercase tracking-widest text-emerald-400">
+            About the project
+          </p>
+
+          <h2 className="mt-4 text-3xl font-bold md:text-4xl">
+            Satellite land-cover classification
+          </h2>
+
+          <p className="mt-5 leading-8 text-slate-300">
+            SatelliteVision AI uses a modified ResNet18
+            convolutional neural network to classify satellite
+            image patches into five land-cover categories.
+            The model works with 16 × 16 RGB patches.
+          </p>
+        </div>
+
+        <div className="mt-10 grid gap-5 md:grid-cols-5">
+          {CLASSES.map((item) => (
+            <div
+              key={item.name}
+              className="rounded-2xl border border-white/10 bg-white/5 p-5"
+            >
+              <div
+                className="mb-4 h-3 w-12 rounded-full"
+                style={{ backgroundColor: item.color }}
+              />
+
+              <h3 className="font-semibold">{item.name}</h3>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* TECHNOLOGY */}
+      <section
+        id="technology"
+        className="border-y border-white/10 bg-slate-900/60"
+      >
+        <div className="mx-auto max-w-7xl px-6 py-20">
+          <p className="text-sm font-semibold uppercase tracking-widest text-emerald-400">
+            Technology
+          </p>
+
+          <h2 className="mt-4 text-3xl font-bold">
+            Built with deep learning
+          </h2>
+
+          <div className="mt-10 grid gap-5 md:grid-cols-3">
+            <InfoCard
+              title="ResNet18"
+              description="A modified convolutional neural network adapted for small satellite image patches."
+            />
+
+            <InfoCard
+              title="Selected-layer fine-tuning"
+              description="The deployed model uses a selected-layer fine-tuning strategy."
+            />
+
+            <InfoCard
+              title="Sentinel-2 imagery"
+              description="RGB satellite reflectance imagery is processed into 16 × 16 patches."
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* CLASSIFIER */}
+      <section
+        id="classifier"
+        className="mx-auto max-w-7xl px-6 py-20"
+      >
+        <div className="mb-10">
+          <p className="text-sm font-semibold uppercase tracking-widest text-emerald-400">
+            Interactive classifier
+          </p>
+
+          <h2 className="mt-4 text-3xl font-bold md:text-4xl">
+            Upload your satellite image
+          </h2>
+
+          <p className="mt-4 max-w-2xl leading-7 text-slate-400">
+            Upload a GeoTIFF image or a preprocessed NPY patch
+            array to receive land-cover classification results.
+          </p>
+        </div>
+
+        {/* UPLOAD AREA */}
+        <div
+          onDragOver={(event) => {
+            event.preventDefault();
+            setDragging(true);
+          }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={handleDrop}
+          className={`rounded-3xl border-2 border-dashed p-8 text-center transition md:p-14 ${
+            dragging
+              ? "border-emerald-400 bg-emerald-400/10"
+              : "border-white/20 bg-white/[0.03]"
+          }`}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".npy,.tif,.tiff"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-400/10 text-3xl">
+            <span>↑</span>
+          </div>
+
+          <h3 className="mt-6 text-xl font-semibold">
+            Drag and drop your satellite image
+          </h3>
+
+          <p className="mt-3 text-sm text-slate-400">
+            Or select a file from your computer
+          </p>
+
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="mt-7 rounded-xl border border-emerald-400/40 bg-emerald-400/10 px-6 py-3 font-semibold text-emerald-300 hover:bg-emerald-400/20"
+          >
+            Browse files
+          </button>
+
+          <p className="mt-5 text-xs text-slate-500">
+            Supported formats: NPY, TIFF, GeoTIFF · Maximum 50 MB
+          </p>
+
+          {file && (
+            <div className="mx-auto mt-8 max-w-lg rounded-xl border border-white/10 bg-slate-900 p-5 text-left">
+              <div className="flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="truncate font-semibold">
+                    {file.name}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-400">
+                    {selectedFileSize}
+                  </p>
+                </div>
+
+                <button
+                  onClick={clearResults}
+                  className="rounded-lg px-3 py-2 text-sm text-red-300 hover:bg-red-400/10"
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <button
+              onClick={classifyImage}
+              disabled={!file || loading}
+              className="rounded-xl bg-emerald-400 px-8 py-4 font-bold text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {loading ? "Classifying..." : "Classify satellite image"}
+            </button>
+          </div>
+
+          {loading && (
+            <div className="mx-auto mt-7 max-w-md">
+              <div className="h-2 overflow-hidden rounded-full bg-white/10">
+                <div className="h-full w-1/2 animate-pulse rounded-full bg-emerald-400" />
+              </div>
+
+              <p className="mt-3 text-sm text-slate-400">
+                Processing image and generating predictions...
+              </p>
+            </div>
+          )}
+
+          {error && (
+            <div className="mx-auto mt-7 max-w-2xl rounded-xl border border-red-400/30 bg-red-400/10 p-4 text-left text-sm text-red-200">
+              {error}
+            </div>
+          )}
+        </div>
+
+        {/* RESULTS */}
+        {result && (
+          <div className="mt-12 space-y-8">
+
+            {/* RESULT HEADER */}
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-widest text-emerald-400">
+                  Classification complete
+                </p>
+
+                <h3 className="mt-2 text-2xl font-bold">
+                  Analysis results
+                </h3>
+
+                <p className="mt-2 text-sm text-slate-400">
+                  {result.filename}
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={downloadJSON}
+                  className="rounded-xl border border-white/20 px-5 py-3 text-sm font-semibold hover:bg-white/10"
+                >
+                  Download JSON
+                </button>
+
+                <button
+                  onClick={clearResults}
+                  className="rounded-xl border border-red-400/30 px-5 py-3 text-sm font-semibold text-red-300 hover:bg-red-400/10"
+                >
+                  Clear results
+                </button>
+              </div>
+            </div>
+
+            {/* TABS */}
+            <div className="flex flex-wrap gap-2 border-b border-white/10">
+              {(["overview", "predictions", "map"] as const).map(
+                (tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`border-b-2 px-5 py-3 text-sm font-semibold capitalize ${
+                      activeTab === tab
+                        ? "border-emerald-400 text-emerald-400"
+                        : "border-transparent text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    {tab === "map" ? "Patch map" : tab}
+                  </button>
+                )
+              )}
+            </div>
+
+            {/* OVERVIEW TAB */}
+            {activeTab === "overview" && (
+              <div className="space-y-8">
+
+                {/* ACTUAL IMAGE PREVIEW */}
+                <div className="overflow-hidden rounded-3xl border border-white/10 bg-slate-900">
+                  <div className="border-b border-white/10 p-6">
+                    <h4 className="text-lg font-bold">
+                      Uploaded satellite image
+                    </h4>
+
+                    <p className="mt-2 text-sm text-slate-400">
+                      {result.preview_description ||
+                        "Preview of the uploaded image."}
+                    </p>
+                  </div>
+
+                  {result.preview_image ? (
+                    <div className="bg-black p-4">
+                      <img
+                        src={result.preview_image}
+                        alt="Uploaded satellite image preview"
+                        className="mx-auto max-h-[650px] w-full rounded-xl object-contain"
+                      />
+                    </div>
+                  ) : (
+                    <div className="p-10 text-center text-slate-400">
+                      Image preview was not returned by the API.
+                    </div>
+                  )}
+
+                  <div className="border-t border-white/10 p-5 text-sm text-slate-400">
+                    This is the uploaded image preview, not a
+                    generated illustration or a pixel-level
+                    segmentation result.
+                  </div>
+                </div>
+
+                {/* MAIN STATISTICS */}
+                <div className="grid gap-5 sm:grid-cols-3">
+                  <MetricCard
+                    label="Patches classified"
+                    value={String(result.total_patches)}
+                  />
+
+                  <MetricCard
+                    label="Patch size"
+                    value={`${result.patch_size} × ${result.patch_size}`}
+                  />
+
+                  <MetricCard
+                    label="Skipped patches"
+                    value={String(result.skipped_patches ?? 0)}
+                  />
+                </div>
+
+                {/* FIRST PATCH */}
+                {firstPrediction && (
+                  <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-7">
+                    <p className="text-sm uppercase tracking-widest text-slate-400">
+                      First patch prediction
+                    </p>
+
+                    <div className="mt-5 flex flex-wrap items-center gap-4">
+                      <div
+                        className="h-5 w-5 rounded-full"
+                        style={{
+                          backgroundColor: getClassColor(
+                            firstPrediction.predicted_class
+                          ),
+                        }}
+                      />
+
+                      <h4 className="text-2xl font-bold">
+                        {firstPrediction.predicted_class}
+                      </h4>
+
+                      <span className="rounded-full bg-emerald-400/10 px-3 py-1 text-sm text-emerald-300">
+                        {(firstPrediction.confidence * 100).toFixed(2)}%
+                        confidence
+                      </span>
+                    </div>
+
+                    <div className="mt-8 space-y-5">
+                      {CLASSES.map((item) => {
+                        const probability =
+                          firstPrediction.probabilities[item.name] ?? 0;
+
+                        return (
+                          <div key={item.name}>
+                            <div className="mb-2 flex justify-between text-sm">
+                              <span className="text-slate-300">
+                                {item.name}
+                              </span>
+
+                              <span className="font-semibold">
+                                {(probability * 100).toFixed(2)}%
+                              </span>
+                            </div>
+
+                            <div className="h-3 overflow-hidden rounded-full bg-white/10">
+                              <div
+                                className="h-full rounded-full transition-all"
+                                style={{
+                                  width: `${probability * 100}%`,
+                                  backgroundColor: item.color,
+                                }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* CLASS DISTRIBUTION */}
+                <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-7">
+                  <h4 className="text-xl font-bold">
+                    Predicted class distribution
+                  </h4>
+
+                  <p className="mt-2 text-sm text-slate-400">
+                    Distribution across all successfully classified patches.
+                  </p>
+
+                  <div className="mt-8 space-y-6">
+                    {result.summary.map((item) => (
+                      <div key={item.class_name}>
+                        <div className="mb-2 flex flex-wrap justify-between gap-2 text-sm">
+                          <span>{item.class_name}</span>
+
+                          <span className="text-slate-300">
+                            {item.count} patches · {item.percentage}%
+                          </span>
+                        </div>
+
+                        <div className="h-3 overflow-hidden rounded-full bg-white/10">
+                          <div
+                            className="h-full rounded-full"
+                            style={{
+                              width: `${item.percentage}%`,
+                              backgroundColor: item.color,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* IMAGE DETAILS */}
+                <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-7">
+                  <h4 className="text-xl font-bold">
+                    Image information
+                  </h4>
+
+                  <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                    <DetailItem
+                      label="File type"
+                      value={result.image_type}
+                    />
+
+                    <DetailItem
+                      label="Total patches"
+                      value={String(result.total_patches)}
+                    />
+
+                    <DetailItem
+                      label="Patch dimensions"
+                      value={`${result.patch_size} × ${result.patch_size}`}
+                    />
+
+                    {result.image_dimensions && (
+                      <DetailItem
+                        label="Image dimensions"
+                        value={`${result.image_dimensions.width} × ${result.image_dimensions.height}`}
+                      />
+                    )}
+
+                    {result.patch_grid && (
+                      <DetailItem
+                        label="Patch grid"
+                        value={`${result.patch_grid.rows} rows × ${result.patch_grid.cols} columns`}
+                      />
+                    )}
+
+                    {result.crs && (
+                      <DetailItem
+                        label="Coordinate reference system"
+                        value={result.crs}
+                      />
+                    )}
+
+                    {result.selected_bands && (
+                      <DetailItem
+                        label="RGB bands"
+                        value={`R: ${result.selected_bands.red}, G: ${result.selected_bands.green}, B: ${result.selected_bands.blue}`}
+                      />
+                    )}
+                  </div>
+                </div>
+
+                {result.warning && (
+                  <div className="rounded-xl border border-amber-400/30 bg-amber-400/10 p-5 text-sm leading-6 text-amber-200">
+                    {result.warning}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* PREDICTIONS TAB */}
+            {activeTab === "predictions" && (
+              <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-7">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <h4 className="text-xl font-bold">
+                      Individual patch predictions
+                    </h4>
+
+                    <p className="mt-2 text-sm text-slate-400">
+                      {result.predictions.length} prediction records
+                    </p>
+                  </div>
+
+                  <input
+                    type="text"
+                    placeholder="Search class..."
+                    value={searchTerm}
+                    onChange={(event) =>
+                      setSearchTerm(event.target.value)
+                    }
+                    className="rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm outline-none focus:border-emerald-400"
+                  />
+                </div>
+
+                <div className="mt-7 overflow-x-auto">
+                  <table className="w-full min-w-[650px] text-left text-sm">
+                    <thead className="border-b border-white/10 text-slate-400">
+                      <tr>
+                        <th className="p-4">Patch</th>
+                        <th className="p-4">Predicted class</th>
+                        <th className="p-4">Confidence</th>
+                        <th className="p-4">Position</th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {filteredPredictions.map((prediction) => (
+                        <tr
+                          key={prediction.patch_index}
+                          className="border-b border-white/5 hover:bg-white/5"
+                        >
+                          <td className="p-4">
+                            {prediction.patch_index + 1}
+                          </td>
+
+                          <td className="p-4">
+                            <span className="inline-flex items-center gap-2">
+                              <span
+                                className="h-3 w-3 rounded-full"
+                                style={{
+                                  backgroundColor: getClassColor(
+                                    prediction.predicted_class
+                                  ),
+                                }}
+                              />
+
+                              {prediction.predicted_class}
+                            </span>
+                          </td>
+
+                          <td className="p-4">
+                            {(prediction.confidence * 100).toFixed(2)}%
+                          </td>
+
+                          <td className="p-4 text-slate-400">
+                            {prediction.row !== undefined &&
+                            prediction.col !== undefined
+                              ? `Row ${prediction.row + 1}, Column ${prediction.col + 1}`
+                              : "Patch array"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+
+                  {filteredPredictions.length === 0 && (
+                    <p className="p-8 text-center text-slate-400">
+                      No matching predictions.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* PATCH MAP TAB */}
+            {activeTab === "map" && (
+              <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-7">
+                <h4 className="text-xl font-bold">
+                  Patch classification map
+                </h4>
+
+                <p className="mt-2 text-sm leading-6 text-slate-400">
+                  Each cell represents one 16 × 16 patch. The
+                  displayed colors represent the predicted class.
+                  This is a patch-level visualization, not a
+                  pixel-level segmentation map.
+                </p>
+
+                {result.patch_grid ? (
+                  <div className="mt-8 overflow-auto rounded-xl bg-slate-900 p-4">
+                    <div
+                      className="mx-auto grid"
+                      style={{
+                        gridTemplateColumns: `repeat(${result.patch_grid.cols}, minmax(12px, 1fr))`,
+                        maxWidth: "1000px",
+                        gap: "2px",
+                      }}
+                    >
+                      {Array.from({
+                        length:
+                          result.patch_grid.rows *
+                          result.patch_grid.cols,
+                      }).map((_, index) => {
+                        const row = Math.floor(
+                          index / result.patch_grid!.cols
+                        );
+
+                        const col =
+                          index % result.patch_grid!.cols;
+
+                        const prediction =
+                          result.predictions.find(
+                            (item) =>
+                              item.row === row &&
+                              item.col === col
+                          );
+
+                        return (
+                          <div
+                            key={index}
+                            title={
+                              prediction
+                                ? `Row ${row + 1}, Column ${col + 1}: ${prediction.predicted_class}`
+                                : "Skipped or invalid patch"
+                            }
+                            className="aspect-square min-w-0 rounded-[2px]"
+                            style={{
+                              backgroundColor: prediction
+                                ? getClassColor(
+                                    prediction.predicted_class
+                                  )
+                                : "#374151",
+                            }}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-8 rounded-xl bg-slate-900 p-10 text-center text-slate-400">
+                    A spatial patch grid is available for
+                    GeoTIFF uploads. NPY arrays do not include
+                    geographic grid coordinates.
+                  </div>
+                )}
+
+                <div className="mt-7 flex flex-wrap gap-5">
+                  {CLASSES.map((item) => (
+                    <div
+                      key={item.name}
+                      className="flex items-center gap-2 text-sm text-slate-300"
+                    >
+                      <span
+                        className="h-3 w-3 rounded-sm"
+                        style={{
+                          backgroundColor: item.color,
+                        }}
+                      />
+                      {item.name}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+
+      {/* FOOTER */}
+      <footer className="border-t border-white/10 bg-slate-900/60">
+        <div className="mx-auto flex max-w-7xl flex-col justify-between gap-4 px-6 py-10 md:flex-row md:items-center">
+          <div>
+            <h3 className="font-bold">SatelliteVision AI</h3>
+            <p className="mt-2 text-sm text-slate-500">
+              Deep learning for satellite land-cover classification.
+            </p>
+          </div>
+
+          <p className="text-xs text-slate-500">
+            Research project · ResNet18 · Five land-cover classes
+          </p>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+
+// ============================================================
+// REUSABLE COMPONENTS
+// ============================================================
+
+function MetricCard({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
+      <p className="text-sm text-slate-400">{label}</p>
+
+      <p className="mt-3 text-3xl font-bold text-emerald-400">
+        {value}
+      </p>
+    </div>
+  );
+}
+
+
+function InfoCard({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-7">
+      <h3 className="text-xl font-bold text-emerald-400">
+        {title}
+      </h3>
+
+      <p className="mt-4 leading-7 text-slate-400">
+        {description}
+      </p>
+    </div>
+  );
+}
+
+
+function DetailItem({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div>
+      <p className="text-xs uppercase tracking-wider text-slate-500">
+        {label}
+      </p>
+
+      <p className="mt-2 break-words text-sm font-medium text-slate-200">
+        {value}
+      </p>
+    </div>
+  );
+}
+
+
+export default App;
